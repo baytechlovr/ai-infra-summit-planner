@@ -585,7 +585,6 @@ body {
   </footer>
 
   <!-- Scripts -->
-  
   <script>
 /**
  * AI Infra Summit 2026 - Schedule Dataset
@@ -10154,11 +10153,10 @@ if (typeof module !== 'undefined' && module.exports) {
   function escapeIcsText(str) {
     if (!str) return '';
     return str
-      .replace(/\/g, '\\')
-      .replace(/;/g, '\;')
-      .replace(/,/g, '\,')
-      .replace(/
-/g, '\n');
+      .split('\\').join('\\\\')
+      .split(';').join('\\;')
+      .split(',').join('\\,')
+      .split('\n').join('\\n');
   }
 
   function generateIcs(sessionList, calendarName = 'AI Infra Summit 2026 Schedule') {
@@ -10199,9 +10197,9 @@ if (typeof module !== 'undefined' && module.exports) {
         ? s.speakers.map(sp => `${sp.name} (${sp.role})`).join(', ')
         : 'N/A';
 
-      let description = `Track: ${s.track}\nFormat: ${s.format}\nTicket: ${s.ticketType}\nSpeakers: ${speakerNames}`;
+      let description = `Track: ${s.track}\\nFormat: ${s.format}\\nTicket: ${s.ticketType}\\nSpeakers: ${speakerNames}`;
       if (notes) {
-        description += `\n\nPersonal Notes:\n${notes}`;
+        description += `\\n\\nPersonal Notes:\\n${notes}`;
       }
 
       ics.push('BEGIN:VEVENT');
@@ -10224,8 +10222,7 @@ if (typeof module !== 'undefined' && module.exports) {
     }
 
     ics.push('END:VCALENDAR');
-    return ics.join('
-');
+    return ics.join('\r\n');
   }
 
   function downloadIcsFile(content, filename) {
@@ -10725,6 +10722,5 @@ if (typeof module !== 'undefined' && module.exports) {
 })();
 
   </script>
-
 </body>
 </html>
