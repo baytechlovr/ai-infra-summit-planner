@@ -325,6 +325,11 @@ body {
           Print
         </button>
 
+        <!-- Google Sheet Cloud Sync Button -->
+        <button onclick="window.App.openGoogleSheetModal()" title="Sync personal itinerary to Google Sheets by name" class="px-3 py-1.5 rounded-lg bg-emerald-950/70 hover:bg-emerald-900/80 text-emerald-300 text-xs font-semibold border border-emerald-500/40 transition flex items-center gap-1.5 shadow-sm shadow-emerald-500/10">
+          <span>📊</span> Google Sheet
+        </button>
+
         <!-- Backup Dropdown -->
         <div class="relative group">
           <button class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition flex items-center gap-1">
@@ -9476,6 +9481,11 @@ if (typeof module !== 'undefined' && module.exports) {
   const STORAGE_KEY_ATTENDING = 'ai_infra_attending_sessions_v1';
   const STORAGE_KEY_NOTES = 'ai_infra_session_notes_v1';
   const STORAGE_KEY_LAST_SYNC = 'ai_infra_last_sync_v1';
+  const STORAGE_KEY_USER_NAME = 'ai_infra_user_name_v1';
+  const STORAGE_KEY_GSHEET_URL = 'ai_infra_gsheet_url_v1';
+
+  const DEFAULT_SPREADSHEET_LINK = 'https://docs.google.com/spreadsheets/d/1nL6k9dykPR8_eXAgL3gqfKiYapNikVpXFsCDUcoE5Tg/edit?usp=sharing';
+  const DEFAULT_GSHEET_APP_URL = 'https://script.google.com/macros/s/AKfycbysv54tOX0lijVum6u9Mmxoj7lM2cy8_rICC48G-GblLZo0epjqyCNq83i3AxdIlUD0/exec';
 
   let sessions = window.SUMMIT_SESSIONS || [];
   let attendingIds = new Set(loadAttending());
@@ -10692,6 +10702,276 @@ if (typeof module !== 'undefined' && module.exports) {
     }
   }
 
+  // GOOGLE SHEETS CLOUD SYNC
+  function getAttendeeName() {
+    return localStorage.getItem(STORAGE_KEY_USER_NAME) || '';
+  }
+
+  function setAttendeeName(name) {
+    localStorage.setItem(STORAGE_KEY_USER_NAME, (name || '').trim());
+  }
+
+  function getGSheetUrl() {
+    return localStorage.getItem(STORAGE_KEY_GSHEET_URL) || DEFAULT_GSHEET_APP_URL;
+  }
+
+  function setGSheetUrl(url) {
+    localStorage.setItem(STORAGE_KEY_GSHEET_URL, (url || '').trim());
+  }
+
+  function openGoogleSheetModal() {
+    const modal = document.getElementById('details-modal');
+    const content = document.getElementById('details-modal-content');
+    if (!modal || !content) return;
+
+    const currentName = getAttendeeName();
+    const currentUrl = getGSheetUrl();
+    const attendingCount = attendingIds.size;
+
+    content.innerHTML = `
+      <div class="p-6">
+        <div class="flex items-start justify-between gap-4 mb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl">
+              📊
+            </div>
+            <div>
+              <h2 class="text-xl font-bold text-white">Google Sheet Sync</h2>
+              <p class="text-xs text-slate-400">
+                Sync your personal itinerary across multiple locations & devices
+              </p>
+            </div>
+          </div>
+          <button onclick="window.App.closeModal()" class="text-slate-400 hover:text-white p-1 rounded-lg bg-slate-800 hover:bg-slate-700">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+
+        <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-800 my-4 space-y-4 text-sm">
+          <!-- Target Google Sheet Link -->
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800 text-xs">
+            <span class="text-slate-400">Connected Spreadsheet:</span>
+            <a href="${DEFAULT_SPREADSHEET_LINK}" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline flex items-center gap-1 font-medium">
+              Open Spreadsheet in Google Docs ↗
+            </a>
+          </div>
+
+          <!-- Attendee Name Input -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">
+              Your Name / Identifier: <span class="text-rose-400">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="gsheet-attendee-name" 
+              value="${currentName}" 
+              placeholder="e.g. Anurag, TechLead-1, Mobile-User"
+              class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500 placeholder-slate-500"
+            />
+            <span class="text-[11px] text-slate-500 mt-1 block">
+              Entering the same name on your laptop and phone allows you to load and update your exact itinerary anywhere.
+            </span>
+          </div>
+
+          <!-- Apps Script Web App URL -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-semibold text-slate-300">
+                Google Apps Script Web App URL:
+              </label>
+              <button onclick="document.getElementById('gsheet-setup-guide').classList.toggle('hidden')" class="text-[11px] text-cyan-400 hover:underline">
+                First time? View 1-minute setup guide ▾
+              </button>
+            </div>
+            <input 
+              type="text" 
+              id="gsheet-app-url" 
+              value="${currentUrl}" 
+              placeholder="https://script.google.com/macros/s/.../exec"
+              class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-cyan-300 focus:outline-none focus:border-blue-500 placeholder-slate-600"
+            />
+          </div>
+
+          <!-- Collapsible Setup Guide -->
+          <div id="gsheet-setup-guide" class="${currentUrl ? 'hidden' : ''} p-3.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300 space-y-2">
+            <h4 class="font-bold text-cyan-300 text-xs uppercase tracking-wider">How to connect to your Google Sheet:</h4>
+            <ol class="list-decimal pl-4 space-y-1 text-slate-400 leading-relaxed">
+              <li>Open your sheet: <a href="${DEFAULT_SPREADSHEET_LINK}" target="_blank" class="text-blue-400 underline">docs.google.com/spreadsheets...</a></li>
+              <li>In the top menu, click <strong>Extensions</strong> → <strong>Apps Script</strong>.</li>
+              <li>Paste the code from <code class="text-slate-200">google_apps_script.js</code> (included in your project folder).</li>
+              <li>Click <strong>Deploy</strong> → <strong>New deployment</strong> → select <strong>Web app</strong>.</li>
+              <li>Set <em>"Who has access"</em> to <strong>Anyone</strong>, click <strong>Deploy</strong>, and paste the URL above!</li>
+            </ol>
+          </div>
+
+          <!-- Actions -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            <button 
+              id="btn-gsheet-save"
+              onclick="window.App.saveToGoogleSheet()" 
+              class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold text-xs transition flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20"
+            >
+              <span>⬆️</span> Save (${attendingCount} talks) to Sheet
+            </button>
+
+            <button 
+              id="btn-gsheet-load"
+              onclick="window.App.loadFromGoogleSheet()" 
+              class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold text-xs transition flex items-center justify-center gap-2 shadow-md shadow-blue-600/20"
+            >
+              <span>⬇️</span> Load My Schedule from Sheet
+            </button>
+          </div>
+
+        </div>
+
+        <div class="flex items-center justify-between text-xs text-slate-500 pt-2">
+          <span>Synced talks include Day, Time, Stage, Title, Speakers & your Personal Notes</span>
+          <button onclick="window.App.closeModal()" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
+            Close
+          </button>
+        </div>
+      </div>
+    `;
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  async function saveToGoogleSheet() {
+    const nameInput = document.getElementById('gsheet-attendee-name');
+    const urlInput = document.getElementById('gsheet-app-url');
+    const saveBtn = document.getElementById('btn-gsheet-save');
+
+    const rawName = nameInput ? nameInput.value.trim() : getAttendeeName();
+    if (!rawName) {
+      showToast('Please enter your name to save your personal itinerary', 'warning');
+      if (nameInput) nameInput.focus();
+      return;
+    }
+    const name = rawName.trim();
+    setAttendeeName(name);
+
+    const scriptUrl = urlInput ? urlInput.value.trim() : getGSheetUrl();
+    if (!scriptUrl) {
+      showToast('Please provide your Google Apps Script Web App URL to sync', 'warning');
+      const guide = document.getElementById('gsheet-setup-guide');
+      if (guide) guide.classList.remove('hidden');
+      if (urlInput) urlInput.focus();
+      return;
+    }
+    setGSheetUrl(scriptUrl);
+
+    const attendingSessions = sessions.filter(s => attendingIds.has(s.id));
+    if (attendingSessions.length === 0) {
+      showToast('No sessions bookmarked yet! Attend some talks first.', 'warning');
+      return;
+    }
+
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = 'Saving to Google Sheet...';
+    }
+
+    showToast(`Saving ${attendingSessions.length} sessions to Google Sheet for "${name}" (case-insensitive)...`, 'info');
+
+    try {
+      const payload = {
+        name: name, // Original casing for display
+        nameKey: name.toLowerCase(), // Normalized lowercase key for case-insensitive matching
+        sessions: attendingSessions,
+        notes: sessionNotes,
+        timestamp: new Date().toISOString()
+      };
+
+      // Sending as text/plain prevents CORS preflight OPTIONS in Google Apps Script
+      await fetch(scriptUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+
+      showToast(`Successfully saved ${attendingSessions.length} sessions to Google Sheet for "${name}"!`, 'success');
+      closeModal();
+    } catch (err) {
+      console.error('Google Sheet save error:', err);
+      showToast('Failed to save to Google Sheet. Check your Web App URL and permissions.', 'error');
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = `<span>⬆️</span> Save (${attendingSessions.length} talks) to Sheet`;
+      }
+    }
+  }
+
+  async function loadFromGoogleSheet() {
+    const nameInput = document.getElementById('gsheet-attendee-name');
+    const urlInput = document.getElementById('gsheet-app-url');
+    const loadBtn = document.getElementById('btn-gsheet-load');
+
+    const rawName = nameInput ? nameInput.value.trim() : getAttendeeName();
+    if (!rawName) {
+      showToast('Please enter your name to load your personal itinerary', 'warning');
+      if (nameInput) nameInput.focus();
+      return;
+    }
+    const name = rawName.trim();
+    setAttendeeName(name);
+
+    const scriptUrl = urlInput ? urlInput.value.trim() : getGSheetUrl();
+    if (!scriptUrl) {
+      showToast('Please provide your Google Apps Script Web App URL to load', 'warning');
+      const guide = document.getElementById('gsheet-setup-guide');
+      if (guide) guide.classList.remove('hidden');
+      if (urlInput) urlInput.focus();
+      return;
+    }
+    setGSheetUrl(scriptUrl);
+
+    if (loadBtn) {
+      loadBtn.disabled = true;
+      loadBtn.innerHTML = 'Loading from Sheet...';
+    }
+
+    showToast(`Fetching itinerary for "${name}" (case-insensitive) from Google Sheet...`, 'info');
+
+    try {
+      // Pass lowercased name so it matches case-insensitively (e.g. ANURAG matches anurag)
+      const fetchUrl = `${scriptUrl}?name=${encodeURIComponent(name.toLowerCase())}&t=${Date.now()}`;
+      const resp = await fetch(fetchUrl);
+      if (!resp.ok) throw new Error('HTTP error ' + resp.status);
+
+      const data = await resp.json();
+      if (data.success && Array.isArray(data.attendingIds)) {
+        if (data.attendingIds.length === 0) {
+          showToast(`No saved sessions found in Google Sheet for "${name}".`, 'warning');
+        } else {
+          attendingIds = new Set(data.attendingIds);
+          saveAttending();
+          if (data.notes && typeof data.notes === 'object') {
+            sessionNotes = Object.assign(sessionNotes, data.notes);
+            saveNotes();
+          }
+          updateStats();
+          render();
+          showToast(`Loaded ${data.attendingIds.length} sessions for "${name}" from Google Sheet!`, 'success');
+          closeModal();
+        }
+      } else {
+        showToast('Could not load itinerary from sheet.', 'error');
+      }
+    } catch (err) {
+      console.error('Google Sheet load error:', err);
+      showToast('Failed to load from Google Sheet. Verify the Web App URL.', 'error');
+    } finally {
+      if (loadBtn) {
+        loadBtn.disabled = false;
+        loadBtn.innerHTML = `<span>⬇️</span> Load My Schedule from Sheet`;
+      }
+    }
+  }
+
   function init() {
     populateFilterOptions();
     initListeners();
@@ -10715,6 +10995,9 @@ if (typeof module !== 'undefined' && module.exports) {
     resetFilters,
     setViewMode,
     syncWithWebsite,
+    openGoogleSheetModal,
+    saveToGoogleSheet,
+    loadFromGoogleSheet,
     printItinerary: () => window.print()
   };
 
