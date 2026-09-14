@@ -1,0 +1,222 @@
+/* AI Infra Summit 2026 Itinerary Web App Styles */
+
+:root {
+  --bg-primary: #07090e;
+  --bg-secondary: #0f1422;
+  --bg-card: #151b2e;
+  --bg-card-hover: #1c243c;
+  --border-color: #242f4d;
+  --border-focus: #3b82f6;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-blue: #3b82f6;
+  --accent-cyan: #06b6d4;
+  --accent-emerald: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
+  --accent-purple: #8b5cf6;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: #222d47;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #33436b;
+}
+
+/* Track Color Themes */
+.track-main-stage {
+  --track-color: #3b82f6;
+  --track-bg: rgba(59, 130, 246, 0.12);
+  --track-border: rgba(59, 130, 246, 0.35);
+}
+.track-data-models {
+  --track-color: #a855f7;
+  --track-bg: rgba(168, 85, 247, 0.12);
+  --track-border: rgba(168, 85, 247, 0.35);
+}
+.track-compute {
+  --track-color: #10b981;
+  --track-bg: rgba(16, 185, 129, 0.12);
+  --track-border: rgba(16, 185, 129, 0.35);
+}
+.track-data-movement {
+  --track-color: #06b6d4;
+  --track-bg: rgba(6, 182, 212, 0.12);
+  --track-border: rgba(6, 182, 212, 0.35);
+}
+.track-ai-data-center {
+  --track-color: #f59e0b;
+  --track-bg: rgba(245, 158, 11, 0.12);
+  --track-border: rgba(245, 158, 11, 0.35);
+}
+.track-physical-ai {
+  --track-color: #ec4899;
+  --track-bg: rgba(236, 72, 153, 0.12);
+  --track-border: rgba(236, 72, 153, 0.35);
+}
+.track-expo-theater-1,
+.track-expo-theater-2 {
+  --track-color: #14b8a6;
+  --track-bg: rgba(20, 184, 166, 0.12);
+  --track-border: rgba(20, 184, 166, 0.35);
+}
+.track-workshops {
+  --track-color: #f97316;
+  --track-bg: rgba(249, 115, 22, 0.12);
+  --track-border: rgba(249, 115, 22, 0.35);
+}
+.track-breakfast-briefings {
+  --track-color: #eab308;
+  --track-bg: rgba(234, 179, 8, 0.12);
+  --track-border: rgba(234, 179, 8, 0.35);
+}
+
+/* Card Glow and Transitions */
+.session-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.session-card:hover {
+  background: var(--bg-card-hover);
+  border-color: #3b4d7a;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.5);
+}
+
+.session-card.is-attending {
+  border-color: rgba(16, 185, 129, 0.6);
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, rgba(21, 27, 46, 0.95) 100%);
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.3), 0 8px 20px -6px rgba(16, 185, 129, 0.15);
+}
+
+.session-card.has-conflict {
+  border-color: rgba(245, 158, 11, 0.8) !important;
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.5), 0 8px 20px -6px rgba(245, 158, 11, 0.25) !important;
+}
+
+/* Attend Button Animations */
+.btn-attend {
+  transition: all 0.18s ease-in-out;
+}
+.btn-attend:active {
+  transform: scale(0.95);
+}
+
+/* Pulse animation for conflict alerts */
+@keyframes conflictPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.03);
+  }
+}
+.animate-conflict-pulse {
+  animation: conflictPulse 2s infinite ease-in-out;
+}
+
+/* Toast Notifications */
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #f8fafc;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+  animation: toastSlideIn 0.25s ease-out forwards;
+  max-width: 380px;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Print Styles */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+    font-size: 11pt;
+  }
+  header, #filters-panel, #stats-bar, .no-print, .btn-attend, #toast-container, .modal-backdrop {
+    display: none !important;
+  }
+  .print-header {
+    display: block !important;
+    border-bottom: 2px solid #000;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+  }
+  .session-card {
+    background: #ffffff !important;
+    border: 1px solid #d1d5db !important;
+    color: #111827 !important;
+    break-inside: avoid;
+    box-shadow: none !important;
+    margin-bottom: 12px !important;
+    padding: 12px !important;
+  }
+  .session-card * {
+    color: #111827 !important;
+  }
+  .badge {
+    border: 1px solid #9ca3af !important;
+    background: #f3f4f6 !important;
+    color: #111827 !important;
+  }
+}

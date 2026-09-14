@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Infra Summit 2026 — Interactive Itinerary & Schedule Planner</title>
+  <meta name="description" content="Personal attendance and itinerary planner for AI Infra Summit 2026 in Santa Clara, CA. Choose sessions, detect conflicts, add notes, and export to iCalendar.">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts: Figtree / Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-[#07090e] text-slate-100 min-h-screen flex flex-col font-['Figtree',sans-serif]">
+
+  <!-- Print Only Header -->
+  <div class="print-header hidden p-6 text-black">
+    <h1 class="text-2xl font-bold">AI Infra Summit 2026 — Personal Itinerary</h1>
+    <p class="text-sm text-gray-600">September 15–17, 2026 • Santa Clara Convention Center, CA</p>
+  </div>
+
+  <!-- Top Header with Brand, Actions, and Sync Button -->
+  <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-4">
+      
+      <!-- Brand & Summit Info -->
+      <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 p-0.5 shadow-lg shadow-blue-500/20 flex items-center justify-center">
+            <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+              <span class="text-blue-400 font-extrabold text-sm tracking-tighter">AI</span>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="font-extrabold text-white text-base sm:text-lg tracking-tight">AI Infra Summit 2026</h1>
+              <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                Itinerary Planner
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 flex items-center gap-1.5">
+              <span>📍 Santa Clara Convention Center, CA</span>
+              <span class="text-slate-600">•</span>
+              <span class="text-cyan-400 font-medium">Sep 15–17, 2026</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Mobile Sync Button -->
+        <button onclick="window.App.syncWithWebsite()" class="sm:hidden px-2.5 py-1.5 bg-blue-600/80 text-white rounded-lg text-xs font-semibold flex items-center gap-1">
+          🔄 Sync
+        </button>
+      </div>
+
+      <!-- Action Buttons Bar -->
+      <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-end">
+        
+        <!-- Live Sync with Summit Website Button -->
+        <button 
+          id="btn-sync-website" 
+          onclick="window.App.syncWithWebsite()" 
+          title="Connects to https://www.ai-infra-summit.com/2026agenda to check for newly added talks, room shifts, or speaker updates" 
+          class="px-3.5 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 text-xs font-semibold border border-blue-500/40 transition flex items-center gap-1.5 shadow-sm shadow-blue-500/10"
+        >
+          <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          <span>Sync Live Website</span>
+        </button>
+
+        <!-- Recommended Keynotes Preset -->
+        <button onclick="window.App.applyRecommendedKeynotes()" title="Quickly bookmark top keynotes to your schedule" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition flex items-center gap-1.5">
+          <span>⭐</span> Keynotes
+        </button>
+
+        <!-- Print / PDF -->
+        <button onclick="window.App.printItinerary()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+          Print
+        </button>
+
+        <!-- Backup Dropdown -->
+        <div class="relative group">
+          <button class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition flex items-center gap-1">
+            <span>💾</span> Data ▾
+          </button>
+          <div class="absolute right-0 mt-1 w-44 bg-slate-900 border border-slate-800 rounded-xl shadow-xl p-1.5 hidden group-hover:block z-50">
+            <button onclick="window.App.exportJsonBackup()" class="w-full text-left px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800 rounded-lg">
+              Export Backup (JSON)
+            </button>
+            <label class="w-full block text-left px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800 rounded-lg cursor-pointer">
+              Restore from Backup
+              <input type="file" id="backup-file-input" accept=".json" class="hidden" onchange="window.App.importJsonBackup(event)">
+            </label>
+            <div class="h-px bg-slate-800 my-1"></div>
+            <button onclick="window.App.clearAllAttending()" class="w-full text-left px-3 py-1.5 text-xs text-rose-400 hover:bg-rose-500/10 rounded-lg">
+              Clear All Selections
+            </button>
+          </div>
+        </div>
+
+        <!-- Primary Export to Calendar Button -->
+        <button onclick="window.App.exportAllIcs()" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/25 transition flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          Export .ics
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Live Stats & Sync Status Bar -->
+  <section id="stats-bar" class="bg-slate-900/40 border-b border-slate-800/60 py-3.5 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      
+      <!-- Metrics Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1">
+        <!-- Attending Count -->
+        <div onclick="window.App.setViewMode('my-schedule')" class="cursor-pointer bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 rounded-xl p-3 transition flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-xl shrink-0">
+            📌
+          </div>
+          <div>
+            <div class="text-xs text-slate-400 font-medium">Attending</div>
+            <div class="text-lg font-extrabold text-white flex items-baseline gap-1">
+              <span id="stat-attending-count">0</span>
+              <span class="text-xs font-normal text-slate-400">sessions</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Total Hours -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center text-xl shrink-0">
+            ⏱️
+          </div>
+          <div>
+            <div class="text-xs text-slate-400 font-medium">Content Time</div>
+            <div class="text-lg font-extrabold text-white flex items-baseline gap-1">
+              <span id="stat-total-hours">0.0</span>
+              <span class="text-xs font-normal text-slate-400">hours</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conflicts Alert Counter -->
+        <div onclick="window.App.setViewMode('conflicts')" class="cursor-pointer bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 rounded-xl p-3 transition flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center text-xl shrink-0">
+            ⚠️
+          </div>
+          <div>
+            <div class="text-xs text-slate-400 font-medium">Time Conflicts</div>
+            <div class="text-lg font-extrabold text-white flex items-baseline gap-1">
+              <span id="stat-conflict-count">0</span>
+              <span class="text-xs font-normal text-slate-400">clashes</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tracks Covered -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center text-xl shrink-0">
+            🏢
+          </div>
+          <div>
+            <div class="text-xs text-slate-400 font-medium">Stages Covered</div>
+            <div class="text-lg font-extrabold text-white flex items-baseline gap-1">
+              <span id="stat-tracks-covered">0</span>
+              <span class="text-xs font-normal text-slate-400">/ 10 tracks</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sync Status Timestamp Badge -->
+      <div class="bg-slate-900/50 border border-slate-800/80 rounded-xl px-3.5 py-2 flex items-center justify-between md:flex-col md:items-end gap-1 shrink-0 text-right">
+        <div class="flex items-center gap-1.5 text-xs text-slate-400">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Live Sync Ready</span>
+        </div>
+        <div class="text-[11px] text-slate-500">
+          Last updated: <span id="last-synced-text" class="text-slate-300 font-medium">Checking...</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Global Conflict Warning Banner -->
+  <div id="conflict-alert-banner" class="hidden bg-gradient-to-r from-amber-950/80 via-amber-900/40 to-slate-950 border-y border-amber-500/40 py-2.5 px-4 sm:px-8">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm text-amber-200">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">⚠️</span>
+        <span id="conflict-alert-banner-text" class="font-medium">You have overlapping sessions scheduled!</span>
+      </div>
+      <button onclick="window.App.setViewMode('conflicts')" class="px-3 py-1 rounded bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 transition shrink-0">
+        Review Conflicts
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Workspace Area -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+
+    <!-- View Mode Selector & Day Navigation -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-slate-800/80 pb-4">
+      
+      <!-- Primary View Switcher Tabs -->
+      <div class="flex items-center gap-2 p-1 bg-slate-900/80 border border-slate-800 rounded-xl">
+        <button data-mode="all" class="view-mode-btn px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold border border-blue-500 text-blue-400 bg-blue-500/10 flex items-center gap-2 transition">
+          <span>🌐 All Sessions</span>
+          <span id="badge-all-sessions" class="px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[11px]">343</span>
+        </button>
+
+        <button data-mode="my-schedule" class="view-mode-btn px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold border border-transparent text-slate-400 hover:text-white flex items-center gap-2 transition">
+          <span>📅 My Itinerary</span>
+          <span id="badge-my-schedule" class="px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[11px]">0</span>
+        </button>
+
+        <button data-mode="conflicts" class="view-mode-btn px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold border border-transparent text-slate-400 hover:text-amber-300 flex items-center gap-2 transition">
+          <span>⚠️ Conflicts</span>
+          <span id="badge-conflicts" class="px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[11px]">0</span>
+        </button>
+      </div>
+
+      <!-- Day Navigation Pills -->
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <button data-day="all" class="day-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white shadow-md transition">
+          All Days
+        </button>
+        <button data-day="Day 1" class="day-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800/80 text-slate-400 hover:text-white transition">
+          Day 1 (Sep 15)
+        </button>
+        <button data-day="Day 2" class="day-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800/80 text-slate-400 hover:text-white transition">
+          Day 2 (Sep 16)
+        </button>
+        <button data-day="Day 3" class="day-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800/80 text-slate-400 hover:text-white transition">
+          Day 3 (Sep 17)
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Filters & Search Toolbar -->
+    <section id="filters-panel" class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 mb-6 space-y-3.5">
+      
+      <!-- Search Input -->
+      <div class="relative w-full">
+        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
+        <input 
+          type="text" 
+          id="search-input" 
+          placeholder="Search by topic, speaker name (Dave Patterson, Jeff Dean), company (Google, Intel, Meta), title, or your notes..."
+          class="w-full pl-10 pr-10 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
+        >
+        <button id="clear-search-btn" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300">
+          ✕
+        </button>
+      </div>
+
+      <!-- Filter Dropdowns Row -->
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+        
+        <!-- Track Filter -->
+        <div>
+          <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Track / Stage</label>
+          <select id="filter-track" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+            <option value="all">All Tracks (10)</option>
+          </select>
+        </div>
+
+        <!-- Format Filter -->
+        <div>
+          <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Format</label>
+          <select id="filter-format" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+            <option value="all">All Formats</option>
+          </select>
+        </div>
+
+        <!-- Ticket Requirement Filter -->
+        <div>
+          <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Ticket Access</label>
+          <select id="filter-ticket" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+            <option value="all">All Access Levels</option>
+            <option value="Expo Pass Eligible">Expo Pass Eligible</option>
+            <option value="Full-Access & VIP">Full-Access & VIP</option>
+          </select>
+        </div>
+
+        <!-- Time of Day Filter -->
+        <div>
+          <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Time of Day</label>
+          <select id="filter-time" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+            <option value="all">Any Time</option>
+            <option value="morning">Morning (Before 12 PM)</option>
+            <option value="afternoon">Afternoon (12 PM - 4 PM)</option>
+            <option value="late">Late (After 4 PM)</option>
+          </select>
+        </div>
+
+        <!-- Reset Button -->
+        <div class="flex items-end">
+          <button onclick="window.App.resetFilters()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition border border-slate-700">
+            Reset Filters
+          </button>
+        </div>
+
+      </div>
+
+      <div class="flex items-center justify-between text-xs text-slate-400 pt-1">
+        <span id="search-result-count">Loading sessions...</span>
+        <span class="text-slate-500">All bookmarks & notes are safely preserved across syncs</span>
+      </div>
+
+    </section>
+
+    <!-- Sessions Render Container -->
+    <div id="sessions-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <!-- Session cards or itinerary timeline rendered here by app.js -->
+    </div>
+
+  </main>
+
+  <!-- Session Details & Notes Modal -->
+  <div id="details-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" id="details-modal-content">
+      <!-- Injected by app.js -->
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-900 bg-slate-950 py-6 px-4 text-center text-xs text-slate-500 mt-12">
+    <p>AI Infra Summit 2026 Interactive Itinerary Planner • September 15–17, Santa Clara Convention Center</p>
+    <p class="mt-1">Synchronized directly with <a href="https://www.ai-infra-summit.com" target="_blank" class="text-blue-400 hover:underline">ai-infra-summit.com</a> • Offline capable • Calendar (.ics) export</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="data/sessions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
