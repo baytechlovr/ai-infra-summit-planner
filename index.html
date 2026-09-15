@@ -303,8 +303,8 @@ body {
         </button>
       </div>
 
-      <!-- Attendee Name & Cloud Link Control (Main Page Option) -->
-      <div class="w-full sm:w-auto flex items-center gap-1.5 sm:gap-2 bg-slate-900/90 border border-slate-700/80 rounded-xl px-2.5 py-1.5 shadow-inner">
+      <!-- Attendee Name & Single Smart Sync Control -->
+      <div class="w-full sm:w-auto flex items-center gap-2 bg-slate-900/90 border border-slate-700/80 rounded-xl px-2.5 py-1.5 shadow-inner">
         <div class="flex items-center gap-1 text-slate-300 text-xs font-semibold whitespace-nowrap">
           <span class="text-blue-400 text-sm">👤</span>
           <span class="hidden sm:inline text-slate-300">Attendee:</span>
@@ -312,27 +312,19 @@ body {
         <input 
           type="text" 
           id="header-user-name" 
-          placeholder="Your name..." 
-          title="Enter your name to link and save your schedule"
-          class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 w-28 sm:w-36 md:w-44 font-medium transition"
+          placeholder="Your name (e.g. Anurag)..." 
+          title="Enter your name to link and sync your schedule across devices"
+          class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 w-32 sm:w-40 md:w-44 font-medium transition"
         />
         <button 
-          id="btn-quick-save-cloud" 
-          onclick="window.App.quickSaveUserSchedule()" 
-          title="Link this session schedule with your name" 
-          class="px-2.5 sm:px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition flex items-center gap-1 shadow-sm whitespace-nowrap active:scale-95"
+          id="btn-sync-user" 
+          onclick="window.App.syncUserSchedule()" 
+          title="Link and sync your schedule with your name" 
+          class="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap active:scale-95"
         >
-          <span>🔗</span> <span class="hidden xs:inline">Link</span> Schedule
+          <span>🔗</span> <span>Link Schedule</span>
         </button>
-        <button 
-          id="btn-quick-load-cloud" 
-          onclick="window.App.quickLoadUserSchedule()" 
-          title="Load schedule saved with this name" 
-          class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium border border-slate-700 transition flex items-center gap-1 whitespace-nowrap active:scale-95"
-        >
-          <span>⬇️</span> Load
-        </button>
-        <span id="attendee-sync-status" class="hidden md:inline text-[11px] text-slate-500 pl-1 font-medium"></span>
+        <span id="attendee-sync-status" class="text-[11px] font-medium transition whitespace-nowrap"></span>
       </div>
 
       <!-- Action Buttons Bar -->
@@ -365,7 +357,11 @@ body {
           <button class="px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition flex items-center gap-1">
             <span>💾</span> Data ▾
           </button>
-          <div class="absolute right-0 mt-1 w-44 bg-slate-900 border border-slate-800 rounded-xl shadow-xl p-1.5 hidden group-hover:block z-50">
+          <div class="absolute right-0 mt-1 w-48 bg-slate-900 border border-slate-800 rounded-xl shadow-xl p-1.5 hidden group-hover:block z-50">
+            <button onclick="window.App.syncUserSchedule(true)" class="w-full text-left px-3 py-1.5 text-xs text-cyan-300 hover:bg-slate-800 rounded-lg flex items-center gap-1.5">
+              <span>⬇️</span> Reload from Cloud
+            </button>
+            <div class="h-px bg-slate-800 my-1"></div>
             <button onclick="window.App.exportJsonBackup()" class="w-full text-left px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800 rounded-lg">
               Export Backup (JSON)
             </button>
@@ -9513,6 +9509,7 @@ if (typeof module !== 'undefined' && module.exports) {
   const STORAGE_KEY_LAST_SYNC = 'ai_infra_last_sync_v1';
   const STORAGE_KEY_USER_NAME = 'ai_infra_user_name_v1';
   const STORAGE_KEY_GSHEET_URL = 'ai_infra_gsheet_url_v1';
+  const STORAGE_KEY_SYNC_HASH = 'ai_infra_sync_hash_v1';
 
   const DEFAULT_SPREADSHEET_LINK = 'https://docs.google.com/spreadsheets/d/1nL6k9dykPR8_eXAgL3gqfKiYapNikVpXFsCDUcoE5Tg/edit?usp=sharing';
   const DEFAULT_GSHEET_APP_URL = 'https://script.google.com/macros/s/AKfycbysv54tOX0lijVum6u9Mmxoj7lM2cy8_rICC48G-GblLZo0epjqyCNq83i3AxdIlUD0/exec';
@@ -9520,6 +9517,8 @@ if (typeof module !== 'undefined' && module.exports) {
   let sessions = window.SUMMIT_SESSIONS || [];
   let attendingIds = new Set(loadAttending());
   let sessionNotes = loadNotes();
+  let lastSyncedHash = localStorage.getItem(STORAGE_KEY_SYNC_HASH) || '';
+  let hasUnsyncedChanges = false;
 
   let state = {
     search: '',
@@ -9633,9 +9632,13 @@ if (typeof module !== 'undefined' && module.exports) {
 
     container.appendChild(toast);
     setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transition = 'opacity 0.3s ease';
-      setTimeout(() => toast.remove(), 300);
+      if (toast && toast.style) {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+      }
+      setTimeout(() => {
+        if (toast && toast.remove) toast.remove();
+      }, 300);
     }, 3500);
   }
 
@@ -9772,6 +9775,8 @@ if (typeof module !== 'undefined' && module.exports) {
         elConflictBanner.classList.add('hidden');
       }
     }
+
+    checkModificationState();
   }
 
   // Toggle Attendance
@@ -10531,6 +10536,7 @@ if (typeof module !== 'undefined' && module.exports) {
       delete sessionNotes[state.activeModalSessionId];
     }
     saveNotes();
+    checkModificationState();
     showToast('Notes saved!', 'success');
     render();
   }
@@ -10567,21 +10573,34 @@ if (typeof module !== 'undefined' && module.exports) {
       const savedName = getAttendeeName();
       if (savedName) {
         headerNameInput.value = savedName;
-        const statusEl = document.getElementById('attendee-sync-status');
-        if (statusEl && attendingIds.size > 0) {
-          statusEl.textContent = `Ready to link (${attendingIds.size} talks)`;
-        }
       }
+      let nameTimer = null;
       headerNameInput.addEventListener('input', (e) => {
-        setAttendeeName(e.target.value);
+        const val = e.target.value.trim();
+        setAttendeeName(val);
+        checkModificationState();
+
+        clearTimeout(nameTimer);
+        if (attendingIds.size === 0 && val.length >= 2) {
+          nameTimer = setTimeout(() => {
+            autoCheckAndLoadCloud(val);
+          }, 600);
+        }
       });
       headerNameInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
-          quickSaveUserSchedule();
+          syncUserSchedule();
         }
       });
     }
+
+    window.addEventListener('beforeunload', (e) => {
+      if (hasUnsyncedChanges && attendingIds.size > 0 && getAttendeeName()) {
+        e.preventDefault();
+        e.returnValue = 'You have modified your summit itinerary but haven\'t linked changes yet.';
+      }
+    });
 
     document.querySelectorAll('.day-tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -10956,29 +10975,190 @@ if (typeof module !== 'undefined' && module.exports) {
     }
   }
 
-  // SEAMLESS NAME-BASED CLOUD SYNC
-  async function quickSaveUserSchedule() {
+  // SCHEDULE HASH & MODIFICATION TRACKING
+  function computeScheduleHash() {
+    const sortedIds = Array.from(attendingIds).sort().join(',');
+    const sortedNotes = Object.keys(sessionNotes).sort().map(k => `${k}:${sessionNotes[k]}`).join(';');
+    return `${sortedIds}|${sortedNotes}`;
+  }
+
+  function checkModificationState() {
+    const currentHash = computeScheduleHash();
+    const name = getAttendeeName();
+
+    if (!lastSyncedHash && attendingIds.size > 0) {
+      hasUnsyncedChanges = true;
+    } else if (lastSyncedHash && currentHash !== lastSyncedHash) {
+      hasUnsyncedChanges = true;
+    } else {
+      hasUnsyncedChanges = false;
+    }
+
+    updateSyncUI();
+  }
+
+  function updateSyncUI(statusMessage = null, statusType = null) {
+    const btn = document.getElementById('btn-sync-user');
+    const statusEl = document.getElementById('attendee-sync-status');
+    const name = getAttendeeName();
+
+    if (btn) {
+      if (hasUnsyncedChanges && attendingIds.size > 0) {
+        // Active notification that changes exist and should be synced!
+        btn.className = 'px-3 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-extrabold transition flex items-center gap-1.5 shadow-lg shadow-amber-500/25 whitespace-nowrap active:scale-95 animate-pulse';
+        btn.innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-slate-950 inline-block animate-ping"></span>
+          <span>⚠️ Link Changes (${attendingIds.size})</span>
+        `;
+        btn.title = 'You have modified sessions! Click to link and sync to your name';
+      } else if (attendingIds.size > 0 && !hasUnsyncedChanges) {
+        // All in sync!
+        btn.className = 'px-3 py-1 rounded-lg bg-emerald-600/25 hover:bg-emerald-600/35 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap active:scale-95';
+        btn.innerHTML = `<span>✓</span> <span>Linked</span>`;
+        btn.title = `Your schedule is linked to "${name || 'you'}"`;
+      } else {
+        // Initial empty state
+        btn.className = 'px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap active:scale-95';
+        btn.innerHTML = `<span>🔗</span> <span>Link Schedule</span>`;
+        btn.title = 'Link this schedule with your name';
+      }
+    }
+
+    if (statusEl) {
+      if (statusMessage) {
+        statusEl.textContent = statusMessage;
+        if (statusType === 'warning') statusEl.className = 'text-[11px] text-amber-400 font-semibold transition';
+        else if (statusType === 'success') statusEl.className = 'text-[11px] text-emerald-400 font-semibold transition';
+        else statusEl.className = 'text-[11px] text-cyan-400 font-medium transition';
+      } else if (hasUnsyncedChanges && attendingIds.size > 0) {
+        statusEl.textContent = '⚠️ Modified • Better to sync';
+        statusEl.className = 'text-[11px] text-amber-400 font-semibold animate-pulse transition';
+      } else if (attendingIds.size > 0 && !hasUnsyncedChanges) {
+        statusEl.textContent = `✓ In sync (${attendingIds.size} talks)`;
+        statusEl.className = 'text-[11px] text-emerald-400 font-medium transition';
+      } else {
+        statusEl.textContent = name ? `Ready for ${name}` : '';
+        statusEl.className = 'text-[11px] text-slate-500 transition';
+      }
+    }
+  }
+
+  // AUTO-CHECK & LOAD ON TYPING
+  async function autoCheckAndLoadCloud(name) {
+    if (!name || attendingIds.size > 0) return;
+    const statusEl = document.getElementById('attendee-sync-status');
+    if (statusEl) {
+      statusEl.textContent = `Checking cloud for "${name}"...`;
+      statusEl.className = 'text-[11px] text-cyan-400 font-medium';
+    }
+
+    try {
+      const fetchUrl = `${DEFAULT_GSHEET_APP_URL}?name=${encodeURIComponent(name.toLowerCase())}&t=${Date.now()}`;
+      const resp = await fetch(fetchUrl);
+      if (!resp.ok) return;
+
+      const data = await resp.json();
+      if (data.success && Array.isArray(data.attendingIds) && data.attendingIds.length > 0) {
+        attendingIds = new Set(data.attendingIds);
+        saveAttending();
+        if (data.notes && typeof data.notes === 'object') {
+          sessionNotes = Object.assign(sessionNotes, data.notes);
+          saveNotes();
+        }
+        lastSyncedHash = computeScheduleHash();
+        localStorage.setItem(STORAGE_KEY_SYNC_HASH, lastSyncedHash);
+        hasUnsyncedChanges = false;
+        updateStats();
+        render();
+
+        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        showToast(`Loaded ${data.attendingIds.length} sessions for "${name}"!`, 'success');
+        updateSyncUI(`✓ In sync (${data.attendingIds.length} talks) • ${now}`, 'success');
+      } else if (statusEl) {
+        statusEl.textContent = 'Ready to add sessions';
+        statusEl.className = 'text-[11px] text-slate-500';
+      }
+    } catch (err) {
+      // Offline / network
+    }
+  }
+
+  // UNIFIED SMART CLOUD SYNC & LINK (Saves when modified, loads when empty)
+  async function syncUserSchedule(forceLoad = false) {
     const input = document.getElementById('header-user-name');
     const name = (input ? input.value : getAttendeeName()).trim();
 
     if (!name) {
-      showToast('Please enter your name to link your schedule', 'warning');
-      if (input) input.focus();
+      showToast('Please enter your name first', 'warning');
+      if (input) {
+        input.focus();
+        input.classList.add('border-amber-400', 'ring-2', 'ring-amber-400/30');
+        setTimeout(() => input.classList.remove('border-amber-400', 'ring-2', 'ring-amber-400/30'), 2500);
+      }
       return;
     }
     setAttendeeName(name);
 
-    const attendingSessions = sessions.filter(s => attendingIds.has(s.id));
-    if (attendingSessions.length === 0) {
-      showToast(`No local sessions selected. Checking for saved schedule under "${name}"...`, 'info');
-      await quickLoadUserSchedule();
+    const btn = document.getElementById('btn-sync-user');
+
+    // SCENARIO 1: LOAD FROM CLOUD (if 0 local sessions OR forceLoad)
+    if (forceLoad || attendingIds.size === 0) {
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `
+          <svg class="animate-spin -ml-1 mr-1 h-3 w-3 text-slate-300 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg> Loading...
+        `;
+      }
+      showToast(`Looking up schedule for "${name}"...`, 'info');
+
+      try {
+        const fetchUrl = `${DEFAULT_GSHEET_APP_URL}?name=${encodeURIComponent(name.toLowerCase())}&t=${Date.now()}`;
+        const resp = await fetch(fetchUrl);
+        if (!resp.ok) throw new Error('HTTP error ' + resp.status);
+
+        const data = await resp.json();
+        if (data.success && Array.isArray(data.attendingIds)) {
+          if (data.attendingIds.length === 0) {
+            showToast(`No saved sessions found for "${name}". Pick sessions below and click "Link Schedule".`, 'info');
+            hasUnsyncedChanges = false;
+          } else {
+            attendingIds = new Set(data.attendingIds);
+            saveAttending();
+            if (data.notes && typeof data.notes === 'object') {
+              sessionNotes = Object.assign(sessionNotes, data.notes);
+              saveNotes();
+            }
+            lastSyncedHash = computeScheduleHash();
+            localStorage.setItem(STORAGE_KEY_SYNC_HASH, lastSyncedHash);
+            hasUnsyncedChanges = false;
+            updateStats();
+            render();
+
+            const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            showToast(`Loaded ${data.attendingIds.length} sessions for "${name}"!`, 'success');
+            updateSyncUI(`✓ In sync (${data.attendingIds.length} talks) • ${now}`, 'success');
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Load error:', err);
+        showToast('Could not load schedule. Check your connection.', 'error');
+        updateSyncUI('Could not reach cloud', 'warning');
+      } finally {
+        if (btn) btn.disabled = false;
+        checkModificationState();
+      }
       return;
     }
 
-    const saveBtn = document.getElementById('btn-quick-save-cloud');
-    if (saveBtn) {
-      saveBtn.disabled = true;
-      saveBtn.innerHTML = `
+    // SCENARIO 2: SAVE / LINK LOCAL SESSIONS TO CLOUD
+    const attendingSessions = sessions.filter(s => attendingIds.has(s.id));
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `
         <svg class="animate-spin -ml-1 mr-1 h-3.5 w-3.5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -11002,88 +11182,20 @@ if (typeof module !== 'undefined' && module.exports) {
         body: JSON.stringify(payload)
       });
 
-      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const statusEl = document.getElementById('attendee-sync-status');
-      if (statusEl) {
-        statusEl.textContent = `Linked (${attendingSessions.length} talks) • ${now}`;
-        statusEl.classList.remove('text-slate-500');
-        statusEl.classList.add('text-emerald-400');
-      }
+      lastSyncedHash = computeScheduleHash();
+      localStorage.setItem(STORAGE_KEY_SYNC_HASH, lastSyncedHash);
+      hasUnsyncedChanges = false;
 
+      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       showToast(`Linked ${attendingSessions.length} sessions to "${name}"!`, 'success');
+      updateSyncUI(`✓ In sync (${attendingSessions.length} talks) • ${now}`, 'success');
     } catch (err) {
       console.error('Cloud link error:', err);
       showToast('Could not link schedule. Please try again.', 'error');
+      updateSyncUI('Link failed • Try again', 'warning');
     } finally {
-      if (saveBtn) {
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = '<span>🔗</span> Link Schedule';
-      }
-    }
-  }
-
-  async function quickLoadUserSchedule() {
-    const input = document.getElementById('header-user-name');
-    const name = (input ? input.value : getAttendeeName()).trim();
-
-    if (!name) {
-      showToast('Please enter your name to load your schedule', 'warning');
-      if (input) input.focus();
-      return;
-    }
-    setAttendeeName(name);
-
-    const loadBtn = document.getElementById('btn-quick-load-cloud');
-    if (loadBtn) {
-      loadBtn.disabled = true;
-      loadBtn.innerHTML = `
-        <svg class="animate-spin -ml-1 mr-1 h-3 w-3 text-slate-300 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg> Loading...
-      `;
-    }
-
-    showToast(`Looking up schedule for "${name}"...`, 'info');
-
-    try {
-      const fetchUrl = `${DEFAULT_GSHEET_APP_URL}?name=${encodeURIComponent(name.toLowerCase())}&t=${Date.now()}`;
-      const resp = await fetch(fetchUrl);
-      if (!resp.ok) throw new Error('HTTP error ' + resp.status);
-
-      const data = await resp.json();
-      if (data.success && Array.isArray(data.attendingIds)) {
-        if (data.attendingIds.length === 0) {
-          showToast(`No saved sessions found under "${name}". Choose your talks and click "Link Schedule".`, 'info');
-        } else {
-          attendingIds = new Set(data.attendingIds);
-          saveAttending();
-          if (data.notes && typeof data.notes === 'object') {
-            sessionNotes = Object.assign(sessionNotes, data.notes);
-            saveNotes();
-          }
-          updateStats();
-          render();
-
-          const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          const statusEl = document.getElementById('attendee-sync-status');
-          if (statusEl) {
-            statusEl.textContent = `Loaded ${data.attendingIds.length} talks • ${now}`;
-            statusEl.classList.remove('text-slate-500');
-            statusEl.classList.add('text-cyan-400');
-          }
-
-          showToast(`Loaded ${data.attendingIds.length} sessions for "${name}"!`, 'success');
-        }
-      }
-    } catch (err) {
-      console.error('Load error:', err);
-      showToast('Could not load schedule. Check your connection.', 'error');
-    } finally {
-      if (loadBtn) {
-        loadBtn.disabled = false;
-        loadBtn.innerHTML = '<span>⬇️</span> Load';
-      }
+      if (btn) btn.disabled = false;
+      checkModificationState();
     }
   }
 
@@ -11091,6 +11203,7 @@ if (typeof module !== 'undefined' && module.exports) {
     populateFilterOptions();
     initListeners();
     updateStats();
+    checkModificationState();
     render();
     checkServerStatus();
   }
@@ -11110,11 +11223,12 @@ if (typeof module !== 'undefined' && module.exports) {
     resetFilters,
     setViewMode,
     syncWithWebsite,
-    quickSaveUserSchedule,
-    quickLoadUserSchedule,
+    syncUserSchedule,
+    quickSaveUserSchedule: syncUserSchedule,
+    quickLoadUserSchedule: () => syncUserSchedule(true),
     openGoogleSheetModal,
-    saveToGoogleSheet: quickSaveUserSchedule,
-    loadFromGoogleSheet: quickLoadUserSchedule,
+    saveToGoogleSheet: syncUserSchedule,
+    loadFromGoogleSheet: () => syncUserSchedule(true),
     printItinerary: () => window.print()
   };
 
